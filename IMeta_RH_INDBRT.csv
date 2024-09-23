@@ -27,4 +27,4 @@ Level;iCode;iName;Direction;Weight;Unit;Target;Denominator;Parent;Type
 1;DAR;Domicílios em áreas de risco;1;1;UNDEF;1;UNDEF;Level2;Indicator
 1;DPAU;Densidade da população em áreas urbanizadas;1;1;UNDEF;1;UNDEF;Level2;Indicator
 1;P2020;Presente 2020;1;1;UNDEF;1;UNDEF;Level2;Indicator
-2;Level2;Teste para Level 2;1;1;;;;;Aggregate
+2;Level2;Teste para Level 2;1;1;NA;;;NA;Aggregate
