@@ -83,7 +83,7 @@ gerar_diagrama_setor <- function(data, setor_e, output_file = "diagrama.png", wi
 #' @param largura Largura da imagem em polegadas. Default: 10.
 #' @param altura Altura da imagem em polegadas. Default: 5.
 #' @param dpi Resolucao (pontos por polegada). Default: 25.
-#' @param nvalores Nome da variavel (string) a ser usada no grafico 
+#' @param icode Nome da variavel (string) a ser usada no grafico 
 #'   e nos rotulos. Default: "DD1".
 #' @param fsize Tamanho base da fonte nos eixos e titulos. Default: 16.
 #' @param plot Logical; se TRUE, plota na tela. Se FALSE, apenas retorna o objeto.
@@ -105,19 +105,19 @@ gerar_diagrama_setor <- function(data, setor_e, output_file = "diagrama.png", wi
 #' @seealso \code{\link[ggplot2]{ggplot}}, \code{\link[gridExtra]{arrangeGrob}}
 #' @importFrom stats density
 #' @export
-criar_grafico <- function(dados, nome_arquivo = "grafico_combinado.png", largura = 10, altura = 5, dpi = 25,nvalores="DD1",fsize=16,plot=TRUE) {
+criar_grafico <- function(dados, nome_arquivo = "grafico_combinado.png", largura = 10, altura = 5, dpi = 25,icode="DD1",fsize=16,plot=TRUE) {
   # Carregar as bibliotecas necessarias
 
   
   # Criar um data frame com os dados
   df <- data.frame(valores = stats::na.exclude(dados))
-  colnames(df) <- nvalores
+  colnames(df) <- icode
 
   # Criar o boxplot
-  boxplot <- ggplot2::ggplot(df, ggplot2::aes(y = !!rlang::sym(nvalores))) +
+  boxplot <- ggplot2::ggplot(df, ggplot2::aes(y = !!rlang::sym(icode))) +
     ggplot2::geom_boxplot(fill = "lightblue", color = "blue") +
     ggplot2::theme_minimal() +
-    ggplot2::labs(x = nvalores, y = "Valores",title = paste0("Boxplot ")) +
+    ggplot2::labs(x = icode, y = "Valores",title = paste0("Boxplot ")) +
     ggplot2::theme(axis.title.x = ggplot2::element_text(size = fsize,vjust=-0.75),
           axis.text.x = ggplot2::element_blank(),
           axis.ticks.x = ggplot2::element_blank(),
@@ -131,12 +131,12 @@ criar_grafico <- function(dados, nome_arquivo = "grafico_combinado.png", largura
   
   # Criar o histograma com a linha de distribuicao normal
   hist_base <- graphics::hist(df[,1], plot = FALSE)
-  histograma <- ggplot2::ggplot(df, ggplot2::aes(x =  !!rlang::sym(nvalores))) +
+  histograma <- ggplot2::ggplot(df, ggplot2::aes(x =  !!rlang::sym(icode))) +
     ggplot2::geom_histogram(ggplot2::aes(y = ggplot2::after_stat(density)),  breaks = hist_base$breaks, fill = "lightblue", color = "blue") +
-    ggplot2::stat_function(fun = stats::dnorm, args = list(mean = mean(df[[rlang::sym(nvalores)]]), sd = stats::sd(df[[rlang::sym(nvalores)]])), 
+    ggplot2::stat_function(fun = stats::dnorm, args = list(mean = mean(df[[rlang::sym(icode)]]), sd = stats::sd(df[[rlang::sym(icode)]])), 
                   color = "red", linewidth = 1.5) +
     ggplot2::theme_minimal() +
-    ggplot2::labs(x = nvalores, y = "Densidade", title = "Histograma com Distribuicao Normal")+
+    ggplot2::labs(x = icode, y = "Densidade", title = "Histograma com Distribuicao Normal")+
     ggplot2::theme(axis.title.x = ggplot2::element_text(size = fsize),  # Aumentar o tamanho da letra do eixo X
           axis.text.x = ggplot2::element_text(size = 0.8*fsize),  # Aumentar o tamanho da letra dos valores do eixo X
           axis.title.y = ggplot2::element_text(size = fsize),  # Aumentar o tamanho da letra do eixo Y
@@ -156,88 +156,8 @@ criar_grafico <- function(dados, nome_arquivo = "grafico_combinado.png", largura
 
   }
 
-
-  
-##################################################################
-#' Gerar Mapa Tematico por Municipio
-#'
-#' Esta funcao gera um mapa tematico (choropleth) a partir de dados associados
-#' a municipios, unindo um shapefile municipal a um conjunto de dados de referencia.
-#' O resultado e exportado como arquivo de imagem (\code{.png}).
-#'
-#' @param iNome String. Nome da coluna em \code{DADOS} que sera usada como variavel de preenchimento do mapa.
-#' @param DADOS Data frame com os valores a serem mapeados, incluindo a coluna de codigos de municipio (\code{GEOCOD}).
-#' @param REFERENCE Data frame de referencia contendo identificadores (\code{GEOCOD}) para associacao com \code{shp_mun}.
-#' @param Titulo Titulo do mapa. Default: "Titulo".
-#' @param nome_arquivo Nome do arquivo de saida (\code{.png}). Default: "map_N7.png".
-#' @param largura Largura da imagem em polegadas. Default: 20.
-#' @param altura Altura da imagem em polegadas. Default: 24.
-#' @param dpi Resolucao (pontos por polegada). Default: 25.
-#' @param fsize Tamanho da fonte para titulos, legendas e eixos. Default: 16.
-#'
-#' @return Nenhum objeto e retornado. Um arquivo PNG contendo o mapa e salvo no diretorio de trabalho.
-#'
-#' @details 
-#' - O shapefile municipal e combinado com os dados fornecidos via \code{merge}, 
-#'   utilizando a chave \code{CD_MUN} (shapefile) e \code{GEOCOD} (dados).
-#' - A paleta usada e \code{Spectral}, invertida (\code{direction = -1}).
-#' - O numero de intervalos da legenda e definido automaticamente com base no histograma dos dados.
-#' - Os limites de visualizacao estao fixos para o Brasil (\code{xlim = c(-74.1, -34.5)}, 
-#'   \code{ylim = c(-35, 5)}).
-#'
-#' @examples
-#' \dontrun{
-#' # Exemplo hipotetico
-#' Map_result(
-#'   iNome = "variavel_exemplo",
-#'   DADOS = df_dados,
-#'   REFERENCE = df_ref,
-#'   Titulo = "Mapa de Exemplo",
-#'   nome_arquivo = "meu_mapa.png"
-#' )
-#' }
-#'
-#' @seealso \code{\link[ggplot2]{geom_sf}}, \code{\link[ggplot2]{scale_fill_distiller}}
-#'
-#' @export
-Map_result <- function(iNome,DADOS,REFERENCE,
-                Titulo = "Titulo",
-                nome_arquivo = "map_N7.png", 
-                largura = 20, altura = 24, dpi = 25,fsize=16)
-{
-
-  shp_mun = utils::data("mun_shp", package = "PacoteTeste", envir = environment())
-  shp_uf = utils::data("uf_shp", package = "PacoteTeste", envir = environment())
-  
-nome_col = iNome
-SHP_0 <- base::merge(shp_mun,cbind(REFERENCE,DADOS) , by.x = "CD_MUN", by.y = "GEOCOD")
-
-nbreaks = length(graphics::hist(unlist(DADOS[nome_col]), plot = FALSE)$breaks)
-
-mapa_iBruto = ggplot2::ggplot(data = SHP_0) +
-  ggplot2::geom_sf(ggplot2::aes(fill = !!rlang::sym(nome_col)),color=NA)+
-  ggplot2::scale_fill_distiller(palette ="Spectral", direction = -1,n.breaks = nbreaks,
-  guide = ggplot2::guide_colourbar(barwidth = 1, barheight = 50,title.position = "bottom"))+
-  ggplot2::geom_sf(data = shp_uf,fill = NA, colour = "black", linewidth=2)+
-  ggplot2::ggtitle(Titulo) +
-  ggplot2::theme_minimal() +  # Usando theme_minimal para um fundo limpo
-  ggplot2::theme(
-    panel.grid = ggplot2::element_blank(),  # Remove as linhas de grade
-    legend.title = ggplot2::element_text(size = fsize),  # Aumenta o tamanho do titulo da legenda
-    legend.text = ggplot2::element_text(size = fsize),  # Aumenta o tamanho do texto da legenda
-    plot.title = ggplot2::element_text(size = 1.5*fsize),
-    axis.text.x = ggplot2::element_text(size = fsize),  # Tamanho do texto do eixo x
-    axis.text.y = ggplot2::element_text(size = fsize),          
-    panel.border = ggplot2::element_rect(color = "black", fill = NA, 
-                          linewidth = 2)
-  )+
-  ggplot2::coord_sf(xlim = c(-74.1, -34.5), ylim = c(-35, 5), expand = FALSE) 
-
-
-  ggplot2::ggsave(filename = nome_arquivo, plot = mapa_iBruto, width = largura, height = altura, dpi = dpi)
-}
-
-###################################
+ 
+##############################################################
 #' Gerar Mapa Normalizado por Classes
 #'
 #' Esta funcao gera um mapa tematico (choropleth) de municipios, 
@@ -352,18 +272,18 @@ mapa_iBruto <- ggplot2::ggplot(data = SHP_0) +
 #' (ii) um histograma dos dados normalizados com curva de distribuicao normal ajustada.  
 #' Os dois graficos sao apresentados lado a lado em um unico layout e salvos em arquivo PNG.
 #'
-#' @param df1 Data frame contendo as colunas \code{Normalizado} e \code{N_Normalizado}, 
+#' @param dtset_proc Data frame contendo os dados nao normalizados, 
 #'   usadas para o grafico de dispersao.
-#' @param df Data frame contendo a variavel numerica a ser usada no histograma 
-#'   (coluna indicada em \code{nvalores}).
+#' @param dtset_norm Data frame contendo os dados normalizados a ser usada no histograma e no grafico de dispersao
+#'   (coluna indicada em \code{icode}).
 #' @param nome_arquivo Nome do arquivo de saida (\code{.png}). Default: "grafico_combinado.png".
 #' @param largura Largura da imagem em polegadas. Default: 10.
 #' @param altura Altura da imagem em polegadas. Default: 5.
 #' @param dpi Resolucao (pontos por polegada). Default: 25.
-#' @param nvalores String com o nome da variavel em \code{df} que sera utilizada no histograma. 
-#'   Default: \code{nvalores}.
+#' @param icode String com o nome da variavel em \code{df} que sera utilizada no histograma. 
+#'   Default: \code{icode}.
 #' @param fsize Tamanho da fonte para titulos, legendas e eixos. Default: 16.
-#'
+#' @param plot Logical; se TRUE, plota na tela. Se FALSE, apenas retorna o objeto.
 #' @return Nenhum objeto e retornado. Um arquivo PNG contendo o grafico combinado e salvo no diretorio de trabalho.
 #'
 #' @details 
@@ -376,32 +296,48 @@ mapa_iBruto <- ggplot2::ggplot(data = SHP_0) +
 #' @examples
 #' \dontrun{
 #' # Exemplo com dados simulados
-#' set.seed(123)
-#' df1 <- data.frame(Normalizado = runif(100), N_Normalizado = rnorm(100))
-#' df <- data.frame(DD1 = rnorm(100, mean = 50, sd = 10))
-#' grafico_final(df1 = df1, df = df, nvalores = "DD1", nome_arquivo = "meu_grafico.png")
+#' 
+#' grafico_final(dtset_proc = result$Data_Bxc$data,
+#'           dtset_norm = result$Data_Normal$dataset, 
+#'             nome_arquivo = "grafico_final_T1.png", 
+#'             largura = 20, 
+#'             altura = 10, 
+#'             dpi = 100,
+#'             icode="MMPD",
+#'             fsize=32)
 #' }
 #'
 #' @seealso \code{\link[ggplot2]{ggplot}}, 
 #'   \code{\link[gridExtra]{arrangeGrob}}, 
 #'   \code{\link[ggplot2]{stat_function}}
-#'
+#' @importFrom stats density
+#' @importFrom rlang .data
 #' @export
 
-grafico_final <- function(df1 = df1,df = df, 
+grafico_final <- function(dtset_proc,dtset_norm, 
 nome_arquivo = "grafico_combinado.png", 
 largura = 10, 
 altura = 5, 
 dpi = 25,
-nvalores=nvalores,
-fsize=16) { 
+icode=icode,
+fsize=16,plot=FALSE) { 
+
+          df_proc <- data.frame(dtset_proc)[[icode]]
+         
+          df_norm <- as.data.frame(dtset_norm)[[icode]] 
+          df_hist <- data.frame(valores = as.numeric(stats::na.exclude(df_norm)))         
+          names(df_proc) <- names(df_norm) <- icode
+
+          #   # Criar um data frame com os dados
+          df_combNA <- na.exclude(data.frame(df_norm, df_proc))
+          colnames(df_combNA) <- c("Normalizado","N_Normalizado")
 
 # Crie o grafico
-scatplot  <- ggplot2::ggplot(df1, ggplot2::aes(x = df1$Normalizado, y = df1$N_Normalizado)) +
-  ggplot2::geom_point(color="blue") +
-  ggplot2::labs(title = paste("Grafico de Dispersao -",nvalores), x = "Dados Normalizados", y = "Dados Brutos")+
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.title.x = ggplot2::element_text(size = fsize,vjust=-0.75),
+scatplot  <- ggplot2::ggplot(df_combNA, ggplot2::aes(x = .data$Normalizado, y = .data$N_Normalizado)) +
+             ggplot2::geom_point(color="blue") +
+             ggplot2::labs(title = paste("Grafico de Dispersao -",icode), x = "Dados Normalizados", y = "Dados Brutos")+
+            ggplot2::theme_minimal() +
+            ggplot2::theme(axis.title.x = ggplot2::element_text(size = fsize,vjust=-0.75),
               axis.text.x = ggplot2::element_text(size = 0.85*fsize),
               axis.title.y = ggplot2::element_text(size = fsize),  # Aumentar o tamanho da letra do eixo Y
               axis.text.y = ggplot2::element_text(size = 0.85*fsize),
@@ -413,16 +349,16 @@ scatplot  <- ggplot2::ggplot(df1, ggplot2::aes(x = df1$Normalizado, y = df1$N_No
 
 # Tenta gerar o histograma normalmente
 histograma <- tryCatch({
-  hist_base  <- graphics::hist(df[,1], plot = FALSE)
+  hist_base  <- hist(df_hist[,1], plot = FALSE)
   
-  ggplot2::ggplot(df, ggplot2::aes(x = !!rlang::sym(nvalores))) +
-  ggplot2::geom_histogram(ggplot2::aes(y = ggplot2::after_stat(stats::density)),  breaks = hist_base$breaks, fill = "lightblue", color = "blue") +
-  ggplot2::stat_function(fun = stats::dnorm, 
-                  args = list(mean = mean(df[[rlang::sym(nvalores)]]), sd = stats::sd(df[[rlang::sym(nvalores)]])), 
+  ggplot2::ggplot(df_hist, ggplot2::aes(x = .data$valores)) +
+    ggplot2::geom_histogram(ggplot2::aes(y = ggplot2::after_stat(density)),  breaks = hist_base$breaks, fill = "lightblue", color = "blue") +
+    ggplot2::stat_function(fun = stats::dnorm, 
+                  args = list(mean = mean(df_hist[,1]), sd = stats::sd(df_hist[,1])), 
                   color = "red", linewidth = 1.5) +
-  ggplot2::theme_minimal() +
-  ggplot2::labs(x = nvalores, y = "Densidade", title = paste("Histograma dados Normalizados -",nvalores)) +
-  ggplot2::theme(
+    ggplot2::theme_minimal() +
+    ggplot2::labs(x = icode, y = "Densidade", title = paste("Histograma dados Normalizados -",icode)) +
+    ggplot2::theme(
       axis.title.x = ggplot2::element_text(size = fsize),  
       axis.text.x = ggplot2::element_text(size = 0.85*fsize),  
       axis.title.y = ggplot2::element_text(size = fsize),  
@@ -441,12 +377,16 @@ histograma <- tryCatch({
       plot.margin = ggplot2::margin(t = 20, r = 20, b = 50, l = 20),
       plot.title = ggplot2::element_text(size = fsize, face = "bold", hjust = 0.5)
     ) +
-    ggplot2::labs(title = paste("Histograma dados Normalizados -", nvalores))
+    ggplot2::labs(title = paste("Histograma dados Normalizados -", icode))
 })
   graf_combinado <- gridExtra::arrangeGrob(histograma, scatplot, ncol = 2, widths = c(2,2))
-  
-  # Salvar o grafico combinado em um arquivo PNG
+  if(plot==TRUE) 
+  {grid::grid.newpage()
+   grid::grid.draw(graf_combinado)}
+  else 
+  { # Salvar o grafico combinado em um arquivo PNG
+ 
   ggplot2::ggsave(filename = nome_arquivo, plot = graf_combinado,width = largura, height = altura, dpi = dpi)
+  }
 }
-
 
